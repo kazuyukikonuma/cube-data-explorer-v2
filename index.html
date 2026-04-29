@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CUBE Data Explorer</title>
+<style>
+:root{
+  --bg:#fff; --bg2:#f7f6f3; --bg3:#efede8;
+  --text1:#1a1916; --text2:#6b6860; --text3:#9c9a94;
+  --border:#e2dfd8; --border2:#ccc9c0;
+  --green:#1d7a5f; --green-bg:#edf5f2;
+  --amber:#96600a; --amber-bg:#fdf4e7;
+  --red:#b83a2e; --red-bg:#fdf0ee;
+  --font:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Hiragino Sans","Noto Sans CJK JP","Noto Sans TC",sans-serif;
+  --mono:"SF Mono","Menlo","Consolas","Courier New",monospace;
+  --m-pink:#FFB7C5; --m-peach:#FFDBA4; --m-lemon:#FFF4A3;
+  --m-mint:#B5EAD7; --m-lavender:#C7CEEA; --m-sky:#AED6F1;
+  --c-learn:#A8C5DA; --c-learn-d:#4A7A9B;
+  --c-stage:#E8A598; --c-stage-d:#B05040;
+  --c-license:#C5B4E3; --c-license-d:#7A5AAB;
+  --c-around:#A8D5B5; --c-around-d:#3A8A55;
+  --c-mira:#F5D4A0; --c-mira-d:#C07820;
+  --c-pos:#88C2A8; --c-neg:#E2998B;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg3);color:var(--text1);font-family:var(--font);font-size:13px;line-height:1.6;min-height:100vh;}
+
+/* ── Header ── */
+.sticky{position:sticky;top:0;z-index:200;background:var(--bg);border-bottom:1px solid var(--border);padding:0 20px;height:50px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.logo{font-size:14px;font-weight:600;color:var(--text1);letter-spacing:-.01em;}
+.logo span{color:var(--c-learn-d);}
+.ver{font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);padding:1px 6px;border-radius:3px;}
+.hdr-sep{flex:1;}
+.lang-toggle{display:flex;gap:2px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:2px;}
+.lang-btn{font-size:11px;padding:3px 10px;border-radius:3px;border:none;cursor:pointer;background:transparent;color:var(--text2);font-family:var(--font);transition:all .15s;}
+.lang-btn.active{background:var(--m-lavender);color:#333;font-weight:500;}
+
+/* ── Tabs ── */
+nav.tabs{display:flex;gap:0;padding:0 20px;background:var(--bg);border-bottom:1px solid var(--border);}
+.tab-btn{padding:10px 18px;border:none;background:none;cursor:pointer;font-family:var(--font);font-size:13px;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;}
+.tab-btn:hover{color:var(--text1);}
+.tab-btn.active{color:var(--text1);font-weight:500;border-bottom-color:var(--c-around-d);background:var(--m-mint);}
+
+/* ── Wrap ── */
+.wrap{max-width:1100px;margin:0 auto;padding:20px;}
+.tab-panel{display:none;} .tab-panel.active{display:block;}
+
+/* ── Cards ── */
+.card{background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;}
+.card-head{padding:11px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.card-title{font-size:13px;font-weight:500;flex:1;}
+.card-body{padding:16px;}
+
+/* ── Info box ── */
+.info-box{border-radius:6px;padding:10px 14px;font-size:12px;line-height:1.6;margin-bottom:14px;display:flex;gap:8px;}
+.info-box-icon{flex-shrink:0;margin-top:1px;}
+.info-mint{background:var(--green-bg);border:1px solid #b5e0d2;color:var(--green);}
+.info-sky{background:#eef6fc;border:1px solid #bdddf5;color:#2a6a9a;}
+.info-amber{background:var(--amber-bg);border:1px solid #f0d4a0;color:var(--amber);}
+
+/* ── Drop zone ── */
+.dropzone{border:2px dashed var(--border2);border-radius:8px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2);}
+.dropzone:hover,.dropzone.over{border-color:var(--c-around-d);background:var(--green-bg);}
+.dropzone input{display:none;}
+.drop-icon{font-size:28px;margin-bottom:8px;opacity:.5;}
+.drop-title{font-size:13px;font-weight:500;color:var(--text1);margin-bottom:3px;}
+.drop-sub{font-size:11px;color:var(--text2);}
+.drop-badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px;margin-top:8px;background:var(--m-mint);color:#333;border:1px solid #a0d4c0;}
+
+/* ── File list ── */
+.file-list{display:flex;flex-direction:column;gap:5px;margin-top:12px;}
+.file-item{background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:8px 12px;display:flex;align-items:center;gap:10px;transition:border-color .2s;}
+.file-item.done{border-color:#b5e0d2;}
+.file-item.error{border-color:var(--c-neg);}
+.file-name{font-family:var(--mono);font-size:12px;color:var(--text1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-size{font-family:var(--mono);font-size:11px;color:var(--text3);min-width:65px;text-align:right;}
+.file-status{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px;min-width:72px;text-align:center;}
+.st-wait{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+.st-proc{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d4a0;}
+.st-done{background:var(--green-bg);color:var(--green);border:1px solid #b5e0d2;}
+.st-err{background:var(--red-bg);color:var(--red);border:1px solid #f0c0ba;}
+.file-remove{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;transition:color .15s;}
+.file-remove:hover{color:var(--red);}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:5px;border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:500;transition:all .15s;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-primary{background:var(--m-mint);color:#333;border:1px solid #a0d4c0;}
+.btn-primary:hover:not(:disabled){background:#a0d4c0;}
+.btn-secondary{background:var(--bg2);color:var(--text2);border:1px solid var(--border);}
+.btn-secondary:hover:not(:disabled){border-color:var(--border2);color:var(--text1);}
+.btn-sky{background:var(--m-sky);color:#333;border:1px solid #98c8e8;}
+.btn-sky:hover:not(:disabled){background:#98c8e8;}
+.btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+
+/* ── Result cards ── */
+.result-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px;}
+.result-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.result-head:hover{background:var(--bg3);}
+.result-fname{font-family:var(--mono);font-size:12px;color:var(--c-learn-d);font-weight:600;flex:1;}
+.result-meta{display:flex;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text3);}
+.result-meta span{background:var(--bg);border:1px solid var(--border);padding:1px 6px;border-radius:3px;}
+.result-chevron{font-size:10px;color:var(--text3);transition:transform .2s;}
+.result-card.open .result-chevron{transform:rotate(90deg);}
+.result-body{display:none;padding:14px;}
+.result-card.open .result-body{display:block;}
+
+/* ── Column table ── */
+table.std{width:100%;border-collapse:collapse;background:var(--bg);margin-bottom:12px;}
+table.std th{font-size:11px;font-weight:400;color:var(--text3);text-align:left;padding:7px 8px;border-bottom:1px solid var(--border2);white-space:nowrap;}
+table.std td{padding:6px 8px;border-bottom:1px solid var(--border);font-size:11px;vertical-align:top;}
+table.std td.num{font-family:var(--mono);text-align:right;white-space:nowrap;}
+table.std tr:hover td{background:var(--bg2);}
+.col-name{color:var(--c-learn-d);font-family:var(--mono);}
+.col-type{color:var(--c-mira-d);font-family:var(--mono);}
+.col-null-hi{color:var(--red);}
+.col-sample{color:var(--text2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ── AI Summary box ── */
+.ai-box{background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:12px;}
+.ai-box-head{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border);background:var(--bg3);}
+.ai-box-label{font-size:11px;font-weight:500;color:var(--green);flex:1;}
+.copy-btn{background:var(--green-bg);border:1px solid #b5e0d2;color:var(--green);font-size:10px;padding:3px 10px;border-radius:3px;cursor:pointer;font-weight:500;transition:all .15s;}
+.copy-btn:hover{background:var(--m-mint);color:#333;}
+.ai-summary{font-family:var(--mono);font-size:11px;line-height:1.8;color:var(--text2);padding:12px 14px;white-space:pre-wrap;word-break:break-all;max-height:280px;overflow-y:auto;}
+
+/* ── Global export ── */
+.global-export{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:16px;}
+.ge-title{font-size:12px;font-weight:500;color:var(--green);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.global-text{font-family:var(--mono);font-size:11px;line-height:1.8;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:12px;white-space:pre-wrap;word-break:break-all;max-height:380px;overflow-y:auto;margin-bottom:10px;}
+
+/* ── Splitter ── */
+.splitter-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:680px){.splitter-grid{grid-template-columns:1fr;}}
+.upload-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.uc-title{font-size:12px;font-weight:500;margin-bottom:10px;}
+.t-amber{color:var(--amber);}
+.t-sky{color:#2a6a9a;}
+.file-loaded{background:var(--green-bg);border:1px solid #b5e0d2;border-radius:5px;padding:8px 12px;display:flex;align-items:center;gap:8px;margin-top:8px;}
+.fl-name{font-family:var(--mono);font-size:12px;color:var(--green);font-weight:600;}
+.fl-sub{font-family:var(--mono);font-size:10px;color:var(--text3);}
+
+/* ── Age config ── */
+.age-config{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;}
+.ac-title{font-size:12px;font-weight:500;color:var(--amber);margin-bottom:12px;}
+.age-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.age-row{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:7px 10px;}
+.age-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.age-label-input{background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--text1);font-family:var(--font);font-size:12px;padding:3px 7px;width:70px;}
+.age-label-input:focus{outline:none;border-color:var(--amber);}
+.age-num{background:var(--bg);border:1px solid var(--border2);border-radius:3px;color:var(--text1);font-family:var(--mono);font-size:12px;padding:3px 6px;width:54px;text-align:center;}
+.age-num:focus{outline:none;border-color:var(--amber);}
+.age-unit{font-size:11px;color:var(--text3);}
+.age-sep{font-size:12px;color:var(--text3);}
+.age-remove{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;margin-left:auto;transition:color .15s;}
+.age-remove:hover{color:var(--red);}
+.preset-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.preset-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:3px;color:var(--text2);font-size:11px;padding:3px 10px;cursor:pointer;transition:all .15s;}
+.preset-btn:hover{border-color:var(--amber);color:var(--amber);}
+
+/* ── Key config ── */
+.key-config{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;}
+.kc-title{font-size:12px;font-weight:500;color:#2a6a9a;margin-bottom:12px;}
+.key-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+@media(max-width:600px){.key-grid{grid-template-columns:1fr;}}
+.key-field label{display:block;font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;}
+.key-select{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:3px;color:var(--text1);font-family:var(--font);font-size:12px;padding:5px 8px;}
+.key-select:focus{outline:none;border-color:#2a6a9a;}
+
+/* ── Progress ── */
+.prog-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:3px;height:5px;overflow:hidden;margin:10px 0;}
+.prog-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--c-around-d),var(--c-learn-d));width:0%;transition:width .3s;}
+
+/* ── Split results ── */
+.split-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:14px;}
+.split-card{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;transition:border-color .2s;}
+.split-card:hover{border-color:var(--c-learn-d);}
+.split-dot{width:9px;height:9px;border-radius:50%;margin-bottom:7px;}
+.split-label{font-family:var(--mono);font-size:12px;color:var(--c-learn-d);font-weight:600;margin-bottom:3px;}
+.split-rows{font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:8px;}
+.split-dl{width:100%;background:var(--m-sky);border:1px solid #98c8e8;color:#333;font-size:11px;padding:5px;border-radius:3px;cursor:pointer;font-weight:500;transition:all .15s;}
+.split-dl:hover{background:#98c8e8;}
+
+/* ── Misc ── */
+::-webkit-scrollbar{width:5px;height:5px;} ::-webkit-scrollbar-track{background:var(--bg2);} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- I18N -->
+<script>
+const I18N = {
+  ja:{
+    title:'CUBE Data Explorer',
+    tab1:'① CSVスキャナー',
+    tab2:'② 月齢別分割',
+    lang_ja:'日本語',
+    lang_zh:'繁體中文',
+    scan_title:'CSV 構造スキャナー',
+    scan_desc:'複数CSVを一括解析 → AIインプット用サマリー生成',
+    scan_info:'複数のCSVファイルをドロップすると、各ファイルの列定義・件数・データ型・サンプル値を解析し、AIにそのままコピーして渡せるテキストを生成します。',
+    drop_title:'CSVファイルをドロップ または クリックして選択',
+    drop_sub:'複数ファイル同時可',
+    run_scan:'▶ スキャン実行',
+    clear:'✕ クリア',
+    waiting:'待機中',
+    scanning:'解析中...',
+    done:'完了',
+    error:'エラー',
+    ai_label:'🤖 AI用サマリーテキスト',
+    copy:'コピー',
+    copied:'コピー済！',
+    copy_all:'📋 全文コピー',
+    global_title:'🤖 AI一括インプット用サマリー（全ファイル）',
+    col_name:'列名', col_type:'型', col_count:'件数', col_null:'NULL率', col_uniq:'ユニーク数', col_sample:'サンプル値',
+    split_title:'月齢別ファイル分割器',
+    split_desc:'歸戶主檔とJOINして月齢グループ別CSVを生成',
+    split_info_title:'仕組み：',
+    split_info:'① 歸戶主檔（マスタ）から 客戶ID＋最小小孩出生年月 を読み込み ② 対象CSVの 客戶ID でJOIN ③ 結算年月から月齢を算出 → カスタム区分でグループ分割',
+    master_title:'① マスタ：歸戶主檔',
+    master_drop:'歸戶主檔.csv',
+    master_sub:'客戶ID + 最小小孩出生年月',
+    target_title:'② 対象ファイル',
+    target_drop:'対象CSV（例：LINE會員標籤表）',
+    target_sub:'客戶ID を含むCSV',
+    key_title:'🔑 結合キー・月齢列の設定',
+    key_master_id:'客戶ID列（マスタ）',
+    key_birth:'出生年月列（マスタ）',
+    key_ref:'結算年月列（マスタ）',
+    key_target_id:'客戶ID列（対象）',
+    key_mode:'月齢モード',
+    key_mode_youngest:'末子ベース',
+    key_ref_val:'結算年月（固定値）',
+    age_title:'📐 月齢グループ設定',
+    preset:'プリセット：',
+    preset_bcl:'BCL標準(6区分)',
+    preset_wide:'広域(5区分)',
+    preset_annual:'年次(6区分)',
+    add_group:'+ グループ追加',
+    run_split:'✂️ 分割実行',
+    split_done_msg:'分割完了 — 合計 {n} 行を {g} グループに振り分けました。',
+    unmatched:'未マッチ',
+    download:'⬇ ダウンロード',
+    rows_unit:'行',
+  },
+  zh:{
+    title:'CUBE 資料探索工具',
+    tab1:'① CSV掃描器',
+    tab2:'② 月齡分割',
+    lang_ja:'日本語',
+    lang_zh:'繁體中文',
+    scan_title:'CSV 結構掃描器',
+    scan_desc:'批次分析多個CSV → 生成AI輸入用摘要',
+    scan_info:'拖放多個CSV檔案，系統將分析每個檔案的欄位定義、筆數、資料類型及樣本值，並生成可直接貼給AI使用的文字摘要。',
+    drop_title:'拖放CSV檔案 或 點擊選擇',
+    drop_sub:'可同時選擇多個檔案',
+    run_scan:'▶ 執行掃描',
+    clear:'✕ 清除',
+    waiting:'等待中',
+    scanning:'掃描中...',
+    done:'完成',
+    error:'錯誤',
+    ai_label:'🤖 AI摘要文字',
+    copy:'複製',
+    copied:'已複製！',
+    copy_all:'📋 複製全部',
+    global_title:'🤖 AI批次輸入用摘要（全部檔案）',
+    col_name:'欄位名', col_type:'類型', col_count:'筆數', col_null:'NULL率', col_uniq:'唯一值數', col_sample:'樣本值',
+    split_title:'月齡別檔案分割器',
+    split_desc:'與歸戶主檔JOIN後，依月齡群組生成CSV',
+    split_info_title:'運作方式：',
+    split_info:'① 讀取歸戶主檔的 客戶ID＋最小孩子出生年月 ② 以目標CSV的 客戶ID 進行JOIN ③ 從結算年月計算月齡 → 依自訂區間分組',
+    master_title:'① 主檔：歸戶主檔',
+    master_drop:'歸戶主檔.csv',
+    master_sub:'客戶ID + 最小小孩出生年月',
+    target_title:'② 目標檔案',
+    target_drop:'目標CSV（如：LINE會員標籤表）',
+    target_sub:'包含客戶ID的CSV',
+    key_title:'🔑 結合鍵與月齡欄位設定',
+    key_master_id:'客戶ID欄（主檔）',
+    key_birth:'出生年月欄（主檔）',
+    key_ref:'結算年月欄（主檔）',
+    key_target_id:'客戶ID欄（目標）',
+    key_mode:'月齡模式',
+    key_mode_youngest:'以末子為基準',
+    key_ref_val:'結算年月（固定值）',
+    age_title:'📐 月齡群組設定',
+    preset:'預設值：',
+    preset_bcl:'BCL標準(6組)',
+    preset_wide:'廣域(5組)',
+    preset_annual:'年度(6組)',
+    add_group:'+ 新增群組',
+    run_split:'✂️ 執行分割',
+    split_done_msg:'分割完成 — 共 {n} 筆資料分配至 {g} 個群組。',
+    unmatched:'未匹配',
+    download:'⬇ 下載',
+    rows_unit:'筆',
+  }
+};
+let LANG = 'ja';
+function t(k){ return (I18N[LANG]||I18N.ja)[k] || k; }
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k = el.getAttribute('data-i18n');
+    if(el.tagName==='INPUT'&&el.placeholder!==undefined) el.placeholder = t(k);
+    else el.textContent = t(k);
+  });
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active', b.dataset.lang===LANG));
+  document.documentElement.lang = LANG==='ja'?'ja':'zh-TW';
+}
+function setLang(l){ LANG=l; applyLang(); }
+</script>
+
+<div class="sticky">
+  <span class="logo">CUBE <span>Data Explorer</span></span>
+  <span class="ver">v2</span>
+  <div class="hdr-sep"></div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" data-lang="ja" onclick="setLang('ja')" data-i18n="lang_ja">日本語</button>
+    <button class="lang-btn" data-lang="zh" onclick="setLang('zh')" data-i18n="lang_zh">繁體中文</button>
+  </div>
+</div>
+
+<nav class="tabs">
+  <button class="tab-btn active" id="tabBtn1" onclick="switchTab(1)" data-i18n="tab1">① CSVスキャナー</button>
+  <button class="tab-btn" id="tabBtn2" onclick="switchTab(2)" data-i18n="tab2">② 月齢別分割</button>
+</nav>
+
+<div class="wrap">
+
+<!-- ════ TAB 1: SCANNER ════ -->
+<div class="tab-panel active" id="panel1">
+  <div class="card">
+    <div class="card-head">
+      <span>📊</span>
+      <span class="card-title" data-i18n="scan_title">CSV 構造スキャナー</span>
+      <span style="font-size:11px;color:var(--text3)" data-i18n="scan_desc">複数CSVを一括解析 → AIインプット用サマリー生成</span>
+    </div>
+    <div class="card-body">
+      <div class="info-box info-mint"><span class="info-box-icon">💡</span><span data-i18n="scan_info"></span></div>
+      <div class="dropzone" id="scanDrop" onclick="document.getElementById('scanInput').click()">
+        <input type="file" id="scanInput" multiple accept=".csv" onchange="handleScanFiles(this.files)">
+        <div class="drop-icon">📂</div>
+        <div class="drop-title" data-i18n="drop_title">CSVファイルをドロップ または クリックして選択</div>
+        <div class="drop-sub" data-i18n="drop_sub">複数ファイル同時可</div>
+        <span class="drop-badge">CSV</span>
+      </div>
+      <div class="file-list" id="scanFileList"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="runScanBtn" disabled onclick="runScan()" data-i18n="run_scan">▶ スキャン実行</button>
+        <button class="btn btn-secondary" onclick="clearScanner()" data-i18n="clear">✕ クリア</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scanResults"></div>
+
+  <div id="globalExport" style="display:none" class="global-export">
+    <div class="ge-title" data-i18n="global_title">🤖 AI一括インプット用サマリー（全ファイル）</div>
+    <div class="global-text" id="globalText"></div>
+    <button class="btn btn-primary" onclick="copyGlobal()" data-i18n="copy_all">📋 全文コピー</button>
+  </div>
+</div>
+
+<!-- ════ TAB 2: SPLITTER ════ -->
+<div class="tab-panel" id="panel2">
+  <div class="card">
+    <div class="card-head">
+      <span>✂️</span>
+      <span class="card-title" data-i18n="split_title">月齢別ファイル分割器</span>
+      <span style="font-size:11px;color:var(--text3)" data-i18n="split_desc"></span>
+    </div>
+    <div class="card-body">
+      <div class="info-box info-sky">
+        <span class="info-box-icon">⚙️</span>
+        <div><strong data-i18n="split_info_title">仕組み：</strong><br><span data-i18n="split_info"></span></div>
+      </div>
+
+      <div class="splitter-grid">
+        <div class="upload-card">
+          <div class="uc-title t-amber" data-i18n="master_title">① マスタ：歸戶主檔</div>
+          <div class="dropzone" style="padding:20px 14px" id="masterDrop" onclick="document.getElementById('masterInput').click()">
+            <input type="file" id="masterInput" accept=".csv" onchange="handleMaster(this.files[0])">
+            <div class="drop-icon" style="font-size:22px">🗂️</div>
+            <div class="drop-title" style="font-size:12px" data-i18n="master_drop">歸戶主檔.csv</div>
+            <div class="drop-sub" style="font-size:11px" data-i18n="master_sub"></div>
+          </div>
+          <div id="masterLoaded" style="display:none"></div>
+        </div>
+        <div class="upload-card">
+          <div class="uc-title t-sky" data-i18n="target_title">② 対象ファイル</div>
+          <div class="dropzone" style="padding:20px 14px" id="targetDrop" onclick="document.getElementById('targetInput').click()">
+            <input type="file" id="targetInput" accept=".csv" onchange="handleTarget(this.files[0])">
+            <div class="drop-icon" style="font-size:22px">📄</div>
+            <div class="drop-title" style="font-size:12px" data-i18n="target_drop"></div>
+            <div class="drop-sub" style="font-size:11px" data-i18n="target_sub"></div>
+          </div>
+          <div id="targetLoaded" style="display:none"></div>
+        </div>
+      </div>
+
+      <div id="keyConfig" style="display:none" class="key-config">
+        <div class="kc-title" data-i18n="key_title">🔑 結合キー・月齢列の設定</div>
+        <div class="key-grid">
+          <div class="key-field"><label data-i18n="key_master_id"></label><select class="key-select" id="masterIdCol"></select></div>
+          <div class="key-field"><label data-i18n="key_birth"></label><select class="key-select" id="masterBirthCol"></select></div>
+          <div class="key-field"><label data-i18n="key_ref"></label><select class="key-select" id="masterDateCol"></select></div>
+          <div class="key-field"><label data-i18n="key_target_id"></label><select class="key-select" id="targetIdCol"></select></div>
+          <div class="key-field"><label data-i18n="key_mode"></label>
+            <select class="key-select" id="ageMode">
+              <option value="youngest" data-i18n="key_mode_youngest">末子ベース</option>
+            </select>
+          </div>
+          <div class="key-field"><label data-i18n="key_ref_val"></label><input type="text" class="key-select" id="refDateInput" placeholder="例: 202503" style="font-family:var(--mono);"></div>
+        </div>
+      </div>
+
+      <div class="age-config">
+        <div class="ac-title" data-i18n="age_title">📐 月齢グループ設定</div>
+        <div class="preset-row">
+          <span style="font-size:11px;color:var(--text3);align-self:center" data-i18n="preset">プリセット：</span>
+          <button class="preset-btn" onclick="applyPreset('bcl')" data-i18n="preset_bcl">BCL標準(6区分)</button>
+          <button class="preset-btn" onclick="applyPreset('wide')" data-i18n="preset_wide">広域(5区分)</button>
+          <button class="preset-btn" onclick="applyPreset('annual')" data-i18n="preset_annual">年次(6区分)</button>
+        </div>
+        <div class="age-list" id="ageGroupsList"></div>
+        <button class="btn btn-secondary" style="font-size:11px;padding:5px 12px" onclick="addAgeGroup()" data-i18n="add_group">+ グループ追加</button>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="runSplitBtn" disabled onclick="runSplit()" data-i18n="run_split">✂️ 分割実行</button>
+        <button class="btn btn-secondary" onclick="clearSplitter()" data-i18n="clear">✕ クリア</button>
+      </div>
+      <div class="prog-wrap" id="splitProg" style="display:none"><div class="prog-bar" id="splitBar"></div></div>
+      <div id="splitResults"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+// ── Tab switching ──
+function switchTab(n){
+  [1,2].forEach(i=>{
+    document.getElementById('panel'+i).classList.toggle('active',i===n);
+    document.getElementById('tabBtn'+i).classList.toggle('active',i===n);
+  });
+}
+
+// ── Utils ──
+function fmtSize(b){if(b<1024)return b+'B';if(b<1024*1024)return (b/1024).toFixed(1)+'KB';return (b/1024/1024).toFixed(1)+'MB';}
+function readText(f){
+  return new Promise((res,rej)=>{
+    // Step1: read as ArrayBuffer for encoding detection
+    const br=new FileReader();
+    br.onerror=rej;
+    br.onload=e=>{
+      const buf=e.target.result;
+      const bytes=new Uint8Array(buf);
+      const enc=detectEncoding(bytes);
+      // Step2: decode with detected encoding
+      const dr=new FileReader();
+      dr.onerror=rej;
+      dr.onload=ev=>res(ev.target.result);
+      dr.readAsText(f,enc);
+    };
+    br.readAsArrayBuffer(f.slice(0,4096)); // sample first 4KB
+  });
+}
+function detectEncoding(bytes){
+  // BOM check
+  if(bytes[0]===0xEF&&bytes[1]===0xBB&&bytes[2]===0xBF)return'UTF-8';
+  if(bytes[0]===0xFF&&bytes[1]===0xFE)return'UTF-16LE';
+  if(bytes[0]===0xFE&&bytes[1]===0xFF)return'UTF-16BE';
+  // Count invalid UTF-8 sequences vs BIG5-likely byte pairs
+  let utf8Err=0,big5Likely=0;
+  for(let i=0;i<bytes.length-1;i++){
+    const b=bytes[i];
+    if(b>=0x81&&b<=0xFE){
+      const n=bytes[i+1];
+      // BIG5 second byte range: 0x40-0x7E or 0xA1-0xFE
+      if((n>=0x40&&n<=0x7E)||(n>=0xA1&&n<=0xFE))big5Likely++;
+      // Check if valid UTF-8 multi-byte
+      else if(!(n>=0x80&&n<=0xBF))utf8Err++;
+      i++;
+    }
+  }
+  // If many BIG5-style pairs and few UTF-8 errors → BIG5
+  if(big5Likely>10&&utf8Err>big5Likely*0.3)return'BIG5';
+  // Fallback UTF-8
+  return'UTF-8';
+}
+function readTextWithEncoding(f){
+  return new Promise((res,rej)=>{
+    const br=new FileReader();
+    br.onerror=rej;
+    br.onload=e=>{
+      const buf=e.target.result;
+      const bytes=new Uint8Array(buf);
+      const enc=detectEncoding(bytes);
+      const dr=new FileReader();
+      dr.onerror=rej;
+      dr.onload=ev=>res({text:ev.target.result,encoding:enc});
+      dr.readAsText(f,enc);
+    };
+    br.readAsArrayBuffer(f.slice(0,4096));
+  });
+}
+function parseCSV(txt){
+  const lines=txt.split('\n');
+  const headers=splitLine(lines[0]||'');
+  const rows=[];
+  for(let i=1;i<Math.min(lines.length,5001);i++){const l=lines[i].trim();if(l)rows.push(splitLine(l));}
+  return{headers,rows};
+}
+function splitLine(l){const r=[];let c='',q=false;for(const ch of l){if(ch==='"'){q=!q;continue;}if(ch===','&&!q){r.push(c.trim());c='';continue;}c+=ch;}r.push(c.trim());return r;}
+function safeName(n){return n.replace(/[^a-zA-Z0-9]/g,'_');}
+function detectType(vals){
+  const ne=vals.filter(v=>v&&v!=='NULL'&&v!=='null');
+  if(!ne.length)return'empty';
+  const nr=ne.filter(v=>!isNaN(Number(v))).length/ne.length;
+  if(nr>.9){
+    if(ne.filter(v=>/^\d{6}$/.test(v)).length/ne.length>.8)return'yyyyMM';
+    if(ne.filter(v=>/^\d{4}-\d{2}-\d{2}/.test(v)).length/ne.length>.8)return'date';
+    return'numeric';
+  }
+  if(ne.filter(v=>/^\d{4}-\d{2}-\d{2}/.test(v)).length/ne.length>.8)return'date';
+  if(ne.filter(v=>v==='Y'||v==='N').length/ne.length>.8)return'Y/N';
+  return'string';
+}
+
+// ── SCANNER ──
+let scanFiles=[], scanResults={};
+const scanDrop=document.getElementById('scanDrop');
+scanDrop.addEventListener('dragover',e=>{e.preventDefault();scanDrop.classList.add('over');});
+scanDrop.addEventListener('dragleave',()=>scanDrop.classList.remove('over'));
+scanDrop.addEventListener('drop',e=>{e.preventDefault();scanDrop.classList.remove('over');handleScanFiles(e.dataTransfer.files);});
+
+function handleScanFiles(files){
+  for(const f of files){if(!f.name.endsWith('.csv'))continue;if(scanFiles.find(x=>x.name===f.name))continue;scanFiles.push(f);}
+  renderScanList();
+  document.getElementById('runScanBtn').disabled=scanFiles.length===0;
+}
+function renderScanList(){
+  const el=document.getElementById('scanFileList');
+  el.innerHTML=scanFiles.map((f,i)=>{
+    const st=scanResults[f.name];
+    let sc='st-wait',stxt=t('waiting');
+    if(st==='proc'){sc='st-proc';stxt=t('scanning');}
+    if(st==='done'){sc='st-done';stxt=t('done');}
+    if(st==='err'){sc='st-err';stxt=t('error');}
+    return`<div class="file-item ${st||''}"><span>📄</span><span class="file-name">${f.name}</span><span class="file-size">${fmtSize(f.size)}</span><span class="file-status ${sc}">${stxt}</span><button class="file-remove" onclick="removeScan(${i})">×</button></div>`;
+  }).join('');
+}
+function removeScan(i){scanFiles.splice(i,1);delete scanResults[scanFiles[i]?.name];renderScanList();document.getElementById('runScanBtn').disabled=scanFiles.length===0;}
+async function runScan(){
+  document.getElementById('runScanBtn').disabled=true;
+  document.getElementById('scanResults').innerHTML='';
+  document.getElementById('globalExport').style.display='none';
+  const container=document.getElementById('scanResults');
+  const summaries=[];
+  for(const f of scanFiles){
+    scanResults[f.name]='proc';renderScanList();
+    try{
+      const {text:txt,encoding}=await readTextWithEncoding(f);
+      const {headers,rows}=parseCSV(txt);
+      const cols=headers.map((h,ci)=>{
+        const vals=rows.map(r=>r[ci]||'');
+        const ne=vals.filter(v=>v&&v!=='NULL'&&v!=='null');
+        const nullPct=vals.length?((vals.length-ne.length)/vals.length*100).toFixed(1):'0';
+        const type=detectType(vals);
+        const uniq=new Set(ne).size;
+        const sample=ne.slice(0,3);
+        return{name:h,type,total:vals.length,nullPct,uniq,sample};
+      });
+      scanResults[f.name]='done';renderScanList();
+      const summary=buildSummaryText(f.name,f.size,{cols,rowCount:rows.length,encoding});
+      summaries.push(summary);
+      container.appendChild(buildResultCard(f.name,f.size,{cols,rowCount:rows.length,encoding},summary));
+    }catch(e){scanResults[f.name]='err';renderScanList();}
+  }
+  if(summaries.length){
+    const globalTxt='=== CUBE '+t('global_title')+' ===\n'+new Date().toLocaleString('ja-JP')+'\n'+t('tab1')+': '+summaries.length+'\n\n'+summaries.join('\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n');
+    document.getElementById('globalText').textContent=globalTxt;
+    document.getElementById('globalExport').style.display='block';
+  }
+  document.getElementById('runScanBtn').disabled=false;
+}
+function buildSummaryText(fname,fsize,{cols,rowCount,encoding}){
+  const encLabel=encoding&&encoding!=='UTF-8'?` ⚠️ ${encoding}`:'';  const lines=[`【${t('col_name')}】${fname}`,`【${fmtSize(fsize)}｜${rowCount.toLocaleString()}行｜${cols.length}列｜${encoding||'UTF-8'}${encLabel?'（文字化け注意）':''}】`,'','【列定義】'];
+  cols.forEach(c=>{
+    lines.push(`  - ${c.name} [${c.type}] NULL:${c.nullPct}% ユニーク:${c.uniq.toLocaleString()}`);
+    if(c.sample.length)lines.push(`    例: ${c.sample.join(' / ')}`);
+  });
+  return lines.join('\n');
+}
+function buildResultCard(fname,fsize,{cols,rowCount,encoding},summary){
+  const div=document.createElement('div');
+  div.className='result-card';
+  div.id='rc-'+safeName(fname);
+  const rows=cols.map(c=>`<tr><td class="col-name">${c.name}</td><td class="col-type">${c.type}</td><td class="num">${c.total.toLocaleString()}</td><td class="num ${parseFloat(c.nullPct)>20?'col-null-hi':''}">${c.nullPct}%</td><td class="num">${c.uniq.toLocaleString()}</td><td class="col-sample">${c.sample.join(' / ')}</td></tr>`).join('');
+  const sid=safeName(fname);
+  div.innerHTML=`
+    <div class="result-head" onclick="toggleCard('${sid}')">
+      <span>📊</span><span class="result-fname">${fname}</span>
+      <div class="result-meta"><span>${fmtSize(fsize)}</span><span>${rowCount.toLocaleString()} ${t('rows_unit')}</span><span>${cols.length}列</span>${encoding&&encoding!=='UTF-8'?`<span style="background:#fdf4e7;border-color:#f0d4a0;color:#96600a">⚠️ ${encoding}</span>`:''}</div>
+      <span class="result-chevron">▶</span>
+    </div>
+    <div class="result-body">
+      <table class="std"><thead><tr><th data-i18n="col_name">${t('col_name')}</th><th data-i18n="col_type">${t('col_type')}</th><th class="num" data-i18n="col_count">${t('col_count')}</th><th class="num" data-i18n="col_null">${t('col_null')}</th><th class="num" data-i18n="col_uniq">${t('col_uniq')}</th><th data-i18n="col_sample">${t('col_sample')}</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="ai-box"><div class="ai-box-head"><span class="ai-box-label" data-i18n="ai_label">${t('ai_label')}</span><button class="copy-btn" onclick="copySummary('${sid}',this)" data-i18n="copy">${t('copy')}</button></div><div class="ai-summary" id="sum-${sid}">${summary}</div></div>
+    </div>`;
+  return div;
+}
+function toggleCard(id){document.getElementById('rc-'+id)?.classList.toggle('open');}
+function copySummary(id,btn){
+  navigator.clipboard.writeText(document.getElementById('sum-'+id)?.textContent||'').then(()=>{btn.textContent=t('copied');setTimeout(()=>btn.textContent=t('copy'),1500);});
+}
+function copyGlobal(){navigator.clipboard.writeText(document.getElementById('globalText').textContent).then(()=>alert(t('copied')));}
+function clearScanner(){scanFiles=[];scanResults={};renderScanList();document.getElementById('scanResults').innerHTML='';document.getElementById('globalExport').style.display='none';document.getElementById('runScanBtn').disabled=true;document.getElementById('scanInput').value='';}
+
+// ── SPLITTER ──
+let masterData=null,masterFile=null,targetData=null,targetFile=null,ageGroups=[],splitData=[];
+const COLORS=['#A8C5DA','#B5EAD7','#FFDBA4','#E8A598','#C5B4E3','#F5D4A0','#C8C8C8','#AED6F1'];
+
+const masterDrop2=document.getElementById('masterDrop');
+masterDrop2.addEventListener('dragover',e=>{e.preventDefault();masterDrop2.classList.add('over');});
+masterDrop2.addEventListener('dragleave',()=>masterDrop2.classList.remove('over'));
+masterDrop2.addEventListener('drop',e=>{e.preventDefault();masterDrop2.classList.remove('over');handleMaster(e.dataTransfer.files[0]);});
+const targetDrop2=document.getElementById('targetDrop');
+targetDrop2.addEventListener('dragover',e=>{e.preventDefault();targetDrop2.classList.add('over');});
+targetDrop2.addEventListener('dragleave',()=>targetDrop2.classList.remove('over'));
+targetDrop2.addEventListener('drop',e=>{e.preventDefault();targetDrop2.classList.remove('over');handleTarget(e.dataTransfer.files[0]);});
+
+async function handleMaster(f){if(!f)return;masterFile=f;const txt=await readText(f);masterData=parseCSV(txt);document.getElementById('masterLoaded').style.display='block';document.getElementById('masterLoaded').innerHTML=`<div class="file-loaded"><span>✅</span><div><div class="fl-name">${f.name}</div><div class="fl-sub">${masterData.rows.length.toLocaleString()} ${t('rows_unit')} / ${masterData.headers.length}列</div></div></div>`;updateKeyConfig();checkReady();}
+async function handleTarget(f){if(!f)return;targetFile=f;const txt=await readText(f);targetData=parseCSV(txt);document.getElementById('targetLoaded').style.display='block';document.getElementById('targetLoaded').innerHTML=`<div class="file-loaded"><span>✅</span><div><div class="fl-name">${f.name}</div><div class="fl-sub">${targetData.rows.length.toLocaleString()} ${t('rows_unit')} / ${targetData.headers.length}列</div></div></div>`;updateKeyConfig();checkReady();}
+
+function updateKeyConfig(){
+  if(!masterData&&!targetData)return;
+  document.getElementById('keyConfig').style.display='block';
+  if(masterData){
+    populateSel('masterIdCol',masterData.headers,autoDetect(masterData.headers,['客戶ID','顧客ID','customer_id','id']));
+    populateSel('masterBirthCol',masterData.headers,autoDetect(masterData.headers,['最小小孩出生年月','小孩出生年月','出生年月','birth']));
+    populateSel('masterDateCol',masterData.headers,autoDetect(masterData.headers,['結算年月','结算年月','ref_month']));
+  }
+  if(targetData)populateSel('targetIdCol',targetData.headers,autoDetect(targetData.headers,['客戶ID','顧客ID','customer_id','id']));
+}
+function populateSel(id,opts,def){const s=document.getElementById(id);s.innerHTML=opts.map(o=>`<option value="${o}" ${o===def?'selected':''}>${o}</option>`).join('');}
+function autoDetect(headers,cands){for(const c of cands){const f=headers.find(h=>h.includes(c)||h===c);if(f)return f;}return headers[0]||'';}
+function checkReady(){document.getElementById('runSplitBtn').disabled=!(masterData&&targetData&&ageGroups.length>0);}
+
+function applyPreset(type){
+  if(type==='bcl')ageGroups=[{label:'孕期',min:-9,max:-1,color:COLORS[7]},{label:'S',min:0,max:6,color:COLORS[0]},{label:'SS',min:7,max:12,color:COLORS[1]},{label:'S',min:13,max:24,color:COLORS[2]},{label:'AA',min:25,max:36,color:COLORS[3]},{label:'A',min:37,max:60,color:COLORS[4]},{label:'B',min:61,max:999,color:COLORS[5]}];
+  else if(type==='wide')ageGroups=[{label:'0-12M',min:0,max:12,color:COLORS[0]},{label:'13-24M',min:13,max:24,color:COLORS[1]},{label:'25-36M',min:25,max:36,color:COLORS[2]},{label:'37-60M',min:37,max:60,color:COLORS[3]},{label:'61M+',min:61,max:999,color:COLORS[4]}];
+  else ageGroups=[{label:'0歳',min:0,max:11,color:COLORS[0]},{label:'1歳',min:12,max:23,color:COLORS[1]},{label:'2歳',min:24,max:35,color:COLORS[2]},{label:'3歳',min:36,max:47,color:COLORS[3]},{label:'4歳',min:48,max:59,color:COLORS[4]},{label:'5歳+',min:60,max:999,color:COLORS[5]}];
+  renderAgeGroups();
+}
+function addAgeGroup(){const last=ageGroups[ageGroups.length-1];ageGroups.push({label:'G'+(ageGroups.length+1),min:last?last.max+1:0,max:999,color:COLORS[ageGroups.length%COLORS.length]});renderAgeGroups();}
+function removeAgeGroup(i){ageGroups.splice(i,1);renderAgeGroups();checkReady();}
+function renderAgeGroups(){
+  const el=document.getElementById('ageGroupsList');
+  el.innerHTML=ageGroups.map((g,i)=>{
+    const isLast=i===ageGroups.length-1;
+    return`<div class="age-row"><div class="age-dot" style="background:${g.color}"></div><input class="age-label-input" value="${g.label}" onchange="ageGroups[${i}].label=this.value"><span class="age-sep">:</span><input class="age-num" type="number" value="${g.min}" min="0" onchange="ageGroups[${i}].min=+this.value"><span class="age-unit">〜</span><input class="age-num" type="number" value="${isLast?'':g.max}" ${isLast?'disabled':''} min="0" onchange="ageGroups[${i}].max=+this.value" placeholder="∞"><span class="age-unit">${LANG==='zh'?'個月':'ヶ月'}</span><button class="age-remove" onclick="removeAgeGroup(${i})">×</button></div>`;
+  }).join('');
+  checkReady();
+}
+applyPreset('bcl');
+
+function calcAge(birth,ref){
+  if(!birth||!ref)return null;
+  const by=Math.floor(+birth/100),bm=+birth%100,ry=Math.floor(+ref/100),rm=+ref%100;
+  if(isNaN(by)||isNaN(bm)||isNaN(ry)||isNaN(rm))return null;
+  return(ry-by)*12+(rm-bm);
+}
+function getGroup(age){if(age===null)return null;for(const g of ageGroups){if(age>=g.min&&age<=g.max)return g;}return null;}
+
+async function runSplit(){
+  document.getElementById('runSplitBtn').disabled=true;
+  document.getElementById('splitResults').innerHTML='';
+  splitData=[];
+  const prog=document.getElementById('splitProg'),bar=document.getElementById('splitBar');
+  prog.style.display='block';bar.style.width='0%';
+
+  const mIdIdx=masterData.headers.indexOf(document.getElementById('masterIdCol').value);
+  const mBirthIdx=masterData.headers.indexOf(document.getElementById('masterBirthCol').value);
+  const mDateIdx=masterData.headers.indexOf(document.getElementById('masterDateCol').value);
+  const tIdIdx=targetData.headers.indexOf(document.getElementById('targetIdCol').value);
+  const refFixed=document.getElementById('refDateInput').value.trim();
+
+  const masterMap=new Map();
+  masterData.rows.forEach(r=>{const id=r[mIdIdx];if(!id)return;masterMap.set(id,{birth:(r[mBirthIdx]||'').replace(/-/g,'').substring(0,6),ref:refFixed||(r[mDateIdx]||'').replace(/-/g,'').substring(0,6)});});
+
+  bar.style.width='20%';
+  const grouped={};
+  ageGroups.forEach(g=>{grouped[g.label]=[];});
+  grouped['__unmatched__']=[];
+
+  const total=targetData.rows.length;
+  for(let i=0;i<total;i++){
+    const row=targetData.rows[i];
+    const cid=row[tIdIdx];
+    const info=masterMap.get(cid);
+    if(!info||!info.birth){grouped['__unmatched__'].push(row);}
+    else{const age=calcAge(info.birth,info.ref);const grp=getGroup(age);if(grp)grouped[grp.label].push(row);else grouped['__unmatched__'].push(row);}
+    if(i%5000===0){bar.style.width=(20+i/total*70)+'%';await new Promise(r=>setTimeout(r,0));}
+  }
+  bar.style.width='100%';
+
+  splitData=[...ageGroups.map(g=>({label:g.label,color:g.color,rows:grouped[g.label]||[],headers:targetData.headers})),{label:t('unmatched'),color:'#C8C8C8',rows:grouped['__unmatched__']||[],headers:targetData.headers}];
+  renderSplitResults();
+  document.getElementById('runSplitBtn').disabled=false;
+}
+function renderSplitResults(){
+  const el=document.getElementById('splitResults');
+  const total=splitData.reduce((s,g)=>s+g.rows.length,0);
+  const msg=t('split_done_msg').replace('{n}',total.toLocaleString()).replace('{g}',splitData.filter(g=>g.rows.length>0).length);
+  let html=`<div class="info-box info-mint" style="margin-top:12px"><span class="info-box-icon">✅</span><span>${msg}</span></div><div class="split-results">`;
+  splitData.forEach((g,i)=>{
+    if(!g.rows.length)return;
+    const pct=total>0?(g.rows.length/total*100).toFixed(1):'0';
+    html+=`<div class="split-card"><div class="split-dot" style="background:${g.color}"></div><div class="split-label">${g.label}</div><div class="split-rows">${g.rows.length.toLocaleString()} ${t('rows_unit')} (${pct}%)</div><button class="split-dl" onclick="downloadGroup(${i})" data-i18n="download">${t('download')}</button></div>`;
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+function downloadGroup(i){
+  const g=splitData[i];if(!g||!g.rows.length)return;
+  const lines=[g.headers.join(','),...g.rows.map(r=>r.map(v=>v.includes(',')||v.includes('"')?`"${v.replace(/"/g,'""')}"`:`${v}`).join(','))];
+  const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`${(targetFile?.name||'data').replace('.csv','')}_${g.label}.csv`;a.click();
+  URL.revokeObjectURL(url);
+}
+function clearSplitter(){masterData=null;masterFile=null;targetData=null;targetFile=null;splitData=[];document.getElementById('masterLoaded').style.display='none';document.getElementById('targetLoaded').style.display='none';document.getElementById('keyConfig').style.display='none';document.getElementById('splitResults').innerHTML='';document.getElementById('splitProg').style.display='none';document.getElementById('masterInput').value='';document.getElementById('targetInput').value='';document.getElementById('runSplitBtn').disabled=true;}
+
+// Init
+applyLang();
+</script>
+</body>
+</html>
