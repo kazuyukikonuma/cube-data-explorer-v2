@@ -565,7 +565,7 @@ async function runScan(){
     scanResults[f.name]='proc';renderScanList();
     try{
       const {text:txt,encoding}=await readTextWithEncoding(f);
-      const {headers,rows}=parseCSV(txt);
+      const {headers,rows}=parseCSVPreview(txt);
       const cols=headers.map((h,ci)=>{
         const vals=rows.map(r=>r[ci]||'');
         const ne=vals.filter(v=>v&&v!=='NULL'&&v!=='null');
@@ -634,8 +634,8 @@ targetDrop2.addEventListener('dragover',e=>{e.preventDefault();targetDrop2.class
 targetDrop2.addEventListener('dragleave',()=>targetDrop2.classList.remove('over'));
 targetDrop2.addEventListener('drop',e=>{e.preventDefault();targetDrop2.classList.remove('over');handleTarget(e.dataTransfer.files[0]);});
 
-async function handleMaster(f){if(!f)return;masterFile=f;const txt=await readText(f);masterData=parseCSV(txt);document.getElementById('masterLoaded').style.display='block';document.getElementById('masterLoaded').innerHTML=`<div class="file-loaded"><span>✅</span><div><div class="fl-name">${f.name}</div><div class="fl-sub">${masterData.rows.length.toLocaleString()} ${t('rows_unit')} / ${masterData.headers.length}列</div></div></div>`;updateKeyConfig();checkReady();}
-async function handleTarget(f){if(!f)return;targetFile=f;const txt=await readText(f);targetData=parseCSV(txt);document.getElementById('targetLoaded').style.display='block';document.getElementById('targetLoaded').innerHTML=`<div class="file-loaded"><span>✅</span><div><div class="fl-name">${f.name}</div><div class="fl-sub">${targetData.rows.length.toLocaleString()} ${t('rows_unit')} / ${targetData.headers.length}列</div></div></div>`;updateKeyConfig();checkReady();}
+async function handleMaster(f){if(!f)return;masterFile=f;const txt=await readText(f);masterData=parseCSVFull(txt);document.getElementById('masterLoaded').style.display='block';document.getElementById('masterLoaded').innerHTML=`<div class="file-loaded"><span>✅</span><div><div class="fl-name">${f.name}</div><div class="fl-sub">${masterData.rows.length.toLocaleString()} ${t('rows_unit')} / ${masterData.headers.length}列</div></div></div>`;updateKeyConfig();checkReady();}
+async function handleTarget(f){if(!f)return;targetFile=f;const txt=await readText(f);targetData=parseCSVFull(txt);document.getElementById('targetLoaded').style.display='block';document.getElementById('targetLoaded').innerHTML=`<div class="file-loaded"><span>✅</span><div><div class="fl-name">${f.name}</div><div class="fl-sub">${targetData.rows.length.toLocaleString()} ${t('rows_unit')} / ${targetData.headers.length}列</div></div></div>`;updateKeyConfig();checkReady();}
 
 function updateKeyConfig(){
   if(!masterData&&!targetData)return;
