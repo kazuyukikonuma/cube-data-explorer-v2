@@ -232,6 +232,10 @@ const I18N = {
     key_mode:'月齢モード',
     key_mode_youngest:'末子ベース',
     key_ref_val:'結算年月（固定値）',
+    key_ref_mode:'基準日モード',
+    key_ref_mode_fixed:'固定値（結算年月）',
+    key_ref_mode_col:'対象ファイルの日付列を使う（購買日・接触日など）',
+    key_ref_col:'基準日列（対象ファイル）',
     age_title:'📐 月齢グループ設定',
     preset:'プリセット：',
     preset_bcl:'BCL標準(6区分)',
@@ -285,6 +289,10 @@ const I18N = {
     key_mode:'月齡模式',
     key_mode_youngest:'以末子為基準',
     key_ref_val:'結算年月（固定值）',
+    key_ref_mode:'基準日模式',
+    key_ref_mode_fixed:'固定值（結算年月）',
+    key_ref_mode_col:'使用目標檔案的日期欄（訂購日・聯絡日等）',
+    key_ref_col:'基準日欄位（目標檔案）',
     age_title:'📐 月齡群組設定',
     preset:'預設值：',
     preset_bcl:'BCL標準(6組)',
@@ -413,6 +421,24 @@ function setLang(l){ LANG=l; applyLang(); }
             </select>
           </div>
           <div class="key-field"><label data-i18n="key_ref_val"></label><input type="text" class="key-select" id="refDateInput" placeholder="例: 202503" style="font-family:var(--mono);"></div>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:500;color:var(--amber);margin-bottom:8px" data-i18n="key_ref_mode">基準日モード</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 12px;transition:all .15s" id="refModeFixedLabel">
+              <input type="radio" name="refMode" value="fixed" id="refModeFixed" checked onchange="onRefModeChange()" style="accent-color:var(--amber)">
+              <span data-i18n="key_ref_mode_fixed">固定値（結算年月）</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:6px 12px;transition:all .15s" id="refModeColLabel">
+              <input type="radio" name="refMode" value="col" id="refModeCol" onchange="onRefModeChange()" style="accent-color:var(--amber)">
+              <span data-i18n="key_ref_mode_col">対象ファイルの日付列を使う</span>
+            </label>
+          </div>
+          <div id="refColArea" style="display:none" class="key-grid" style="grid-template-columns:1fr">
+            <div class="key-field"><label data-i18n="key_ref_col">基準日列（対象ファイル）</label><select class="key-select" id="targetRefCol"></select></div>
+          </div>
+        </div>
+        <div style="display:none">
         </div>
       </div>
 
@@ -648,7 +674,21 @@ function updateKeyConfig(){
     populateSel('masterBirthCol',masterData.headers,autoDetect(masterData.headers,['最小小孩出生年月','小孩出生年月','出生年月','birth']));
     populateSel('masterDateCol',masterData.headers,autoDetect(masterData.headers,['結算年月','结算年月','ref_month']));
   }
-  if(targetData)populateSel('targetIdCol',targetData.headers,autoDetect(targetData.headers,['客戶ID','顧客ID','customer_id','id']));
+  if(targetData){
+    populateSel('targetIdCol',targetData.headers,autoDetect(targetData.headers,['客戶ID','顧客ID','customer_id','id']));
+    // populate ref col candidates (date/yyyyMM columns)
+    populateSel('targetRefCol',targetData.headers,autoDetect(targetData.headers,['訂單日期','銷貨日期','聯絡時間','通話開始時間','貼標日期','date','日期']));
+  }
+}
+function onRefModeChange(){
+  const isCol=document.getElementById('refModeCol').checked;
+  document.getElementById('refColArea').style.display=isCol?'block':'none';
+  const fixedLabel=document.getElementById('refModeFixedLabel');
+  const colLabel=document.getElementById('refModeColLabel');
+  fixedLabel.style.borderColor=isCol?'var(--border2)':'var(--amber)';
+  fixedLabel.style.background=isCol?'var(--bg2)':'var(--amber-bg)';
+  colLabel.style.borderColor=isCol?'var(--amber)':'var(--border2)';
+  colLabel.style.background=isCol?'var(--amber-bg)':'var(--bg2)';
 }
 function populateSel(id,opts,def){const s=document.getElementById(id);s.innerHTML=opts.map(o=>`<option value="${o}" ${o===def?'selected':''}>${o}</option>`).join('');}
 function autoDetect(headers,cands){for(const c of cands){const f=headers.find(h=>h.includes(c)||h===c);if(f)return f;}return headers[0]||'';}
@@ -693,8 +733,12 @@ async function runSplit(){
   const tIdIdx=targetData.headers.indexOf(document.getElementById('targetIdCol').value);
   const refFixed=document.getElementById('refDateInput').value.trim();
 
+  const useColRef=document.getElementById('refModeCol').checked;
+  const targetRefColName=document.getElementById('targetRefCol').value;
+  const tRefIdx=useColRef&&targetData?targetData.headers.indexOf(targetRefColName):-1;
+
   const masterMap=new Map();
-  masterData.rows.forEach(r=>{const id=r[mIdIdx];if(!id)return;masterMap.set(id,{birth:(r[mBirthIdx]||'').replace(/-/g,'').substring(0,6),ref:refFixed||(r[mDateIdx]||'').replace(/-/g,'').substring(0,6)});});
+  masterData.rows.forEach(r=>{const id=r[mIdIdx];if(!id)return;masterMap.set(id,{birth:(r[mBirthIdx]||'').replace(/-/g,'').substring(0,6),refDefault:refFixed||(r[mDateIdx]||'').replace(/-/g,'').substring(0,6)});});
 
   bar.style.width='20%';
   const grouped={};
@@ -707,7 +751,17 @@ async function runSplit(){
     const cid=row[tIdIdx];
     const info=masterMap.get(cid);
     if(!info||!info.birth){grouped['__unmatched__'].push(row);}
-    else{const age=calcAge(info.birth,info.ref);const grp=getGroup(age);if(grp)grouped[grp.label].push(row);else grouped['__unmatched__'].push(row);}
+    else{
+      let ref=info.refDefault;
+      if(useColRef&&tRefIdx>=0&&row[tRefIdx]){
+        // extract yyyyMM from date string (handles 2025-06-19 or 202506)
+        const raw=(row[tRefIdx]||'').replace(/-/g,'').substring(0,6);
+        if(/^\d{6}$/.test(raw))ref=raw;
+      }
+      const age=calcAge(info.birth,ref);
+      const grp=getGroup(age);
+      if(grp)grouped[grp.label].push(row);else grouped['__unmatched__'].push(row);
+    }
     if(i%5000===0){bar.style.width=(20+i/total*70)+'%';await new Promise(r=>setTimeout(r,0));}
   }
   bar.style.width='100%';
